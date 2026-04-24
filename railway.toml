@@ -1,0 +1,10 @@
+# Root railway.toml — monorepo with two services.
+# Each service overrides this via its own service definition in Railway dashboard.
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npm run agent"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
