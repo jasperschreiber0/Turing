@@ -74,8 +74,10 @@ function start() {
   drainQueue().catch(console.error)
 
   // Watch sessions table — auto-queue when a new session is created
+  let reconnectScheduled = false
+
   supabase
-    .channel('learning-sessions')
+    .channel(`learning-sessions-${Date.now()}`)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'sessions' },
@@ -94,6 +96,11 @@ function start() {
     )
     .subscribe(status => {
       console.log(`[turing-learning] Realtime: ${status}`)
+      if (status === 'TIMED_OUT' && !reconnectScheduled) {
+        reconnectScheduled = true
+        console.log('[turing-learning] Reconnecting in 15s...')
+        setTimeout(start, 15000)
+      }
     })
 
   // Poll every 15 s for high-priority items added by the orchestrator

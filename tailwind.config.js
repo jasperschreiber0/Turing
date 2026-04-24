@@ -17,9 +17,11 @@ module.exports = {
         muted:   '#D8D5CE',
       },
       fontFamily: {
-        display: ['var(--font-bebas)', 'sans-serif'],
-        mono:    ['var(--font-mono)', 'monospace'],
-        sans:    ['var(--font-dm)', 'sans-serif'],
+        display: ['var(--font-bebas)', 'Bebas Neue', 'sans-serif'],
+        barlow:  ['var(--font-barlow)', 'Barlow Condensed', 'sans-serif'],
+        courier: ['var(--font-courier)', 'Courier Prime', 'monospace'],
+        mono:    ['var(--font-courier)', 'Courier Prime', 'monospace'],
+        sans:    ['var(--font-barlow)', 'Barlow Condensed', 'sans-serif'],
       },
       animation: {
         'ink-reveal': 'inkReveal 0.5s ease forwards',

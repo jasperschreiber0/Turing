@@ -18,6 +18,7 @@ type GameState = {
   revealed:         boolean
   revealStep:       number
   grudgeMessage:    string | null
+  sleeperGrudge:    string | null
   consentGiven: boolean | null
   setRoom:          (room: Room) => void
   setPlayers:       (players: RoomPlayer[]) => void
@@ -28,6 +29,7 @@ type GameState = {
   startReveal:      () => void
   nextRevealStep:   () => void
   setGrudgeMessage: (msg: string) => void
+  setSleeperGrudge: (msg: string) => void
   setConsent:       (given: boolean) => void
   addVote:          (vote: Vote) => void
   reset:            () => void
@@ -39,7 +41,7 @@ export const useGameStore = create<GameState>((set) => ({
   isTyping: false, typingPlayers: [],
   roundEndsAt: null, votingEndsAt: null,
   revealed: false, revealStep: 0,
-  grudgeMessage: null, consentGiven: null,
+  grudgeMessage: null, sleeperGrudge: null, consentGiven: null,
   setRoom:          (room) => set({ room, roundEndsAt: room.round_ends_at ? new Date(room.round_ends_at) : null }),
   setPlayers:       (players) => set({ players }),
   addMessage:       (msg) => set((s) => ({ messages: [...s.messages, msg] })),
@@ -49,12 +51,13 @@ export const useGameStore = create<GameState>((set) => ({
   startReveal:      () => set({ revealed: true, revealStep: 0 }),
   nextRevealStep:   () => set((s) => ({ revealStep: s.revealStep + 1 })),
   setGrudgeMessage: (msg) => set({ grudgeMessage: msg }),
+  setSleeperGrudge: (msg) => set({ sleeperGrudge: msg }),
   setConsent:       (given) => set({ consentGiven: given }),
   addVote:          (vote) => set((s) => ({ votes: [...s.votes, vote] })),
   reset:            () => set({
     room: null, players: [], messages: [], votes: [],
     myPlayer: null, myRole: null, aiCodename: null,
     typingPlayers: [], roundEndsAt: null, votingEndsAt: null,
-    revealed: false, revealStep: 0, grudgeMessage: null, consentGiven: null,
+    revealed: false, revealStep: 0, grudgeMessage: null, sleeperGrudge: null, consentGiven: null,
   }),
 }))

@@ -2,220 +2,206 @@
 
 import { useEffect, useState } from 'react'
 import { useGameStore } from '@/stores/game'
-import type { Message } from '@/lib/supabase/client'
+import type { Message, RoomPlayer } from '@/lib/supabase/client'
 
-const AI_BAR = '#CC3333'
-const AI_BG  = 'rgba(204, 51, 51, 0.06)'
-const INK    = '#0A0A0A'
-const GREY   = '#999999'
+const B  = 'Bebas Neue, var(--font-bebas, sans-serif)'
+const C  = 'Courier Prime, var(--font-courier, monospace)'
 
 type Props = {
-  aiCodename:   string
-  aiCaught:     boolean
-  correctCount: number   // number of players who correctly identified the AI
-  totalVotes:   number
-  messages:     (Message & { _revealed: boolean })[]
-  onComplete:   () => void
+  aiCodename:      string
+  aiCaught:        boolean
+  correctCount:    number
+  totalVotes:      number
+  messages:        (Message & { _revealed: boolean })[]
+  players:         RoomPlayer[]
+  sleeperCodename: string | null
+  sleeperGrudge:   string | null
+  onComplete:      () => void
+}
+
+const AV_COLORS = ['var(--sky)', 'var(--blush)', 'var(--purple-pale)', 'var(--purple-mid)', '#D4E8C8']
+function avColor(name: string) {
+  const s = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return AV_COLORS[s % AV_COLORS.length]
+}
+
+function getRoleLabel(p: RoomPlayer, aiCodename: string, sleeperCodename: string | null) {
+  if (p.is_ai) return { label: '🤖 The AI', isBot: true }
+  if (p.codename === sleeperCodename) return { label: '🤝 Sleeper', isBot: false }
+  return { label: '🔍 Detector', isBot: false }
 }
 
 const STEPS = [
   { at: 0    },   // 0 — mount
-  { at: 600  },   // 1 — codename wipe
-  { at: 1300 },   // 2 — "// AI" appended
-  { at: 1900 },   // 3 — result + grudge
-  { at: 2800 },   // 4 — scoreboard + scroll hint
-  { at: 5200 },   // 5 — buttons
+  { at: 500  },   // 1 — badge + heading
+  { at: 1200 },   // 2 — player grid
+  { at: 2800 },   // 3 — outcome table
+  { at: 3800 },   // 4 — grudge block(s)
+  { at: 5000 },   // 5 — play again button
 ]
 
-export function RevealSequence({ aiCodename, aiCaught, correctCount, totalVotes, messages, onComplete }: Props) {
-  const [step, setStep] = useState(0)
-  const grudgeMessage   = useGameStore(s => s.grudgeMessage)
-
-  const fooledCount  = totalVotes - correctCount
+export function RevealSequence({ aiCodename, aiCaught, correctCount, totalVotes, messages, players, sleeperCodename, sleeperGrudge, onComplete }: Props) {
+  const [step, setStep]    = useState(0)
+  const grudgeMessage      = useGameStore(s => s.grudgeMessage)
+  const fooledCount        = totalVotes - correctCount
 
   useEffect(() => {
-    STEPS.forEach(({ at }, i) => {
-      setTimeout(() => setStep(i), at)
-    })
+    STEPS.forEach(({ at }, i) => { setTimeout(() => setStep(i), at) })
   }, [])
 
-  const showCodename  = step >= 1
-  const showAITag     = step >= 2
-  const showResult    = step >= 3
-  const showScoreboard = step >= 4
-  const showButtons   = step >= 5
+  const showBadge    = step >= 1
+  const showGrid     = step >= 2
+  const showOutcome  = step >= 3
+  const showGrudge   = step >= 4
+  const showButton   = step >= 5
 
-  // Annotated message list — shows AI messages with red stripe
-  const aiMessages = messages.filter(m => m.is_ai)
+  // Build player role display
+  const humanPlayers = players.filter(p => !p.is_ai)
 
+  // Outcome rows: each human player's vote result (simplified)
+  // We don't have per-voter data here, so show aggregate
   return (
     <div style={{
-      position:       'fixed',
-      inset:          0,
-      background:     '#FFFFFF',
-      display:        'flex',
-      flexDirection:  'column',
-      alignItems:     'center',
-      justifyContent: 'center',
-      padding:        '2rem 1.5rem',
-      zIndex:         50,
-      overflowY:      'auto',
+      position: 'fixed', inset: 0, background: 'var(--beige)',
+      zIndex: 50, overflowY: 'auto',
     }}>
+      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '56px 24px', textAlign: 'center' }}>
 
-      {/* Phase label */}
-      <p style={{
-        fontFamily:    'monospace',
-        fontSize:      '0.6rem',
-        letterSpacing: '0.2em',
-        color:         GREY,
-        textTransform: 'uppercase',
-        marginBottom:  '2rem',
-      }}>
-        {aiCaught ? 'AI detected' : 'AI survived'}
-      </p>
-
-      {/* Codename ink-wipe */}
-      <div style={{ minHeight: '7rem', display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
-        {showCodename && (
-          <span
-            className="font-display ink-reveal"
-            style={{
-              fontSize:   'clamp(3rem, 12vw, 5.5rem)',
-              color:      showAITag ? AI_BAR : INK,
-              transition: 'color 0.5s ease',
-              display:    'block',
-              textAlign:  'center',
-              letterSpacing: '0.08em',
-            }}
-          >
-            {showAITag ? `${aiCodename} // AI` : aiCodename}
-          </span>
-        )}
-      </div>
-
-      {/* Result line */}
-      {showResult && (
-        <p
-          className="fade-up"
-          style={{
-            fontFamily:    'monospace',
-            fontSize:      '0.75rem',
-            letterSpacing: '0.14em',
-            color:         aiCaught ? INK : GREY,
-            textTransform: 'uppercase',
-            marginBottom:  '1.5rem',
-          }}
-        >
-          {aiCaught
-            ? `Identified by ${correctCount} of ${totalVotes} player${totalVotes !== 1 ? 's' : ''}`
-            : `The AI fooled everyone — ${totalVotes} wrong vote${totalVotes !== 1 ? 's' : ''}`}
-        </p>
-      )}
-
-      {/* Grudge message */}
-      {showResult && grudgeMessage && (
-        <div
-          className="fade-up"
-          style={{
-            maxWidth:     '22rem',
-            width:        '100%',
-            border:       '1px solid rgba(10,10,10,0.15)',
-            borderLeft:   `3px solid ${AI_BAR}`,
-            padding:      '1rem 1.25rem',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <p style={{ fontFamily: 'monospace', fontSize: '0.58rem', letterSpacing: '0.14em', color: GREY, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-            {aiCodename} says:
-          </p>
-          <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: INK, lineHeight: '1.65', fontStyle: 'italic' }}>
-            {grudgeMessage}
-          </p>
-        </div>
-      )}
-
-      {/* Scoreboard */}
-      {showScoreboard && (
-        <div
-          className="fade-up"
-          style={{
-            maxWidth:     '22rem',
-            width:        '100%',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <div style={{
-            display:       'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap:           '0.75rem',
+        {/* Badge */}
+        {showBadge && (
+          <div className="fade-up" style={{
+            display: 'inline-block', fontFamily: C, fontSize: '10px', fontWeight: 700,
+            letterSpacing: '0.2em', textTransform: 'uppercase',
+            background: 'var(--ink)', color: 'var(--purple)',
+            padding: '5px 14px', borderRadius: '2px', marginBottom: '20px',
           }}>
-            <div style={{ textAlign: 'center', padding: '0.75rem', border: '1px solid rgba(10,10,10,0.1)' }}>
-              <p style={{ fontFamily: 'monospace', fontSize: '1.5rem', color: INK, fontWeight: 600 }}>
-                {correctCount}
-              </p>
-              <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: GREY, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: '0.25rem' }}>
-                caught the AI
-              </p>
+            🤖 Bot revealed
+          </div>
+        )}
+
+        {/* Heading */}
+        {showBadge && (
+          <div className="fade-up" style={{ fontFamily: B, fontSize: 'clamp(56px, 10vw, 96px)', letterSpacing: '2px', lineHeight: '0.88', color: 'var(--ink)', marginBottom: '40px' }}>
+            THE BOT<br/>
+            WAS{' '}
+            <span style={{ background: 'var(--purple)', padding: '0 10px', display: 'inline-block', transform: 'rotate(-1.5deg)' }}>
+              {aiCodename}.
+            </span>
+          </div>
+        )}
+
+        {/* Player grid */}
+        {showGrid && (
+          <div className="fade-up" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '24px', textAlign: 'left' }}>
+            {players.map((p, i) => {
+              const { label, isBot } = getRoleLabel(p, aiCodename, sleeperCodename)
+              return (
+                <div key={p.codename} style={{
+                  background: isBot ? 'var(--purple-pale)' : 'var(--white)',
+                  border: `${isBot ? 3 : 2}px solid ${isBot ? 'var(--purple-dark)' : 'var(--ink)'}`,
+                  borderRadius: 'var(--radius)', padding: '22px', textAlign: 'center',
+                  opacity: 0,
+                  animation: `flipIn 0.45s cubic-bezier(0.34,1.4,0.64,1) ${0.2 + i * 0.6}s forwards`,
+                }}>
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    border: `2px solid ${isBot ? 'var(--purple-dark)' : 'var(--ink)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: B, fontSize: '19px', margin: '0 auto 10px',
+                    background: isBot ? 'var(--purple)' : avColor(p.codename),
+                  }}>{p.codename.slice(0, 2)}</div>
+                  <div style={{ fontFamily: B, fontSize: '24px', letterSpacing: '1px', marginBottom: '4px' }}>{p.codename}</div>
+                  <div style={{ fontFamily: C, fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: isBot ? 'var(--purple-dark)' : 'var(--ink-faint)' }}>{label}</div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Outcome summary */}
+        {showOutcome && (
+          <div className="fade-up" style={{
+            background: 'var(--white)', border: '2px solid var(--ink)',
+            borderRadius: 'var(--radius)', overflow: 'hidden', marginBottom: '20px', textAlign: 'left',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--ink-soft)' }}>Caught the AI</span>
+              <span style={{ fontFamily: B, fontSize: '16px', letterSpacing: '0.5px', color: correctCount > 0 ? '#3a7a46' : 'var(--ink-faint)' }}>
+                {correctCount > 0 ? `${correctCount} PLAYER${correctCount !== 1 ? 'S' : ''} 🎯` : 'NOBODY'}
+              </span>
             </div>
-            <div style={{ textAlign: 'center', padding: '0.75rem', border: '1px solid rgba(10,10,10,0.1)' }}>
-              <p style={{ fontFamily: 'monospace', fontSize: '1.5rem', color: GREY, fontWeight: 600 }}>
-                {fooledCount}
-              </p>
-              <p style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: GREY, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: '0.25rem' }}>
-                fooled
-              </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--ink-soft)' }}>
+                {aiCaught ? 'Detectors win' : 'AI + Sleeper win'}
+              </span>
+              <span style={{ fontFamily: B, fontSize: '16px', letterSpacing: '0.5px', color: aiCaught ? '#3a7a46' : 'var(--purple-dark)' }}>
+                {aiCaught ? 'CAUGHT IT 🎯' : 'AI SURVIVED 🤖'}
+              </span>
             </div>
           </div>
+        )}
 
-          {/* AI message count annotation */}
-          {aiMessages.length > 0 && (
-            <p style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: GREY, textAlign: 'center', marginTop: '0.75rem', letterSpacing: '0.08em' }}>
-              ↑ scroll up — {aiMessages.length} AI message{aiMessages.length !== 1 ? 's' : ''} highlighted in chat
-            </p>
-          )}
-        </div>
-      )}
+        {/* Grudge block(s) */}
+        {showGrudge && grudgeMessage && (
+          <div className="fade-up" style={{
+            background: 'var(--ink)', border: '2px solid var(--ink)',
+            borderRadius: 'var(--radius)', overflow: 'hidden', marginBottom: sleeperGrudge ? '12px' : '24px',
+            textAlign: 'left',
+          }}>
+            <div style={{ padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'var(--purple-deep)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontFamily: C, fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--purple-mid)' }}>
+                📨 A message from {aiCodename}
+              </span>
+            </div>
+            <div style={{ padding: '18px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 300, fontStyle: 'italic', lineHeight: 1.65, color: 'rgba(255,255,255,0.82)' }}>
+                "{grudgeMessage}"
+              </div>
+            </div>
+          </div>
+        )}
 
-      {/* Action buttons */}
-      {showButtons && (
-        <div className="fade-up" style={{ display: 'flex', gap: '0.75rem' }}>
-          <button
-            onClick={() => {/* Clip export — Phase 3 */}}
-            style={{
-              padding:       '0.6rem 1.5rem',
-              border:        '1px solid rgba(10,10,10,0.25)',
-              background:    'transparent',
-              fontFamily:    'monospace',
-              fontSize:      '0.62rem',
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color:         GREY,
-              cursor:        'pointer',
-            }}
-            onMouseEnter={e => { (e.target as HTMLElement).style.borderColor = INK; (e.target as HTMLElement).style.color = INK }}
-            onMouseLeave={e => { (e.target as HTMLElement).style.borderColor = 'rgba(10,10,10,0.25)'; (e.target as HTMLElement).style.color = GREY }}
-          >
-            Clip this
-          </button>
+        {showGrudge && sleeperGrudge && sleeperCodename && (
+          <div className="fade-up" style={{
+            background: 'var(--ink)', border: '2px solid var(--ink)',
+            borderRadius: 'var(--radius)', overflow: 'hidden', marginBottom: '24px',
+            textAlign: 'left',
+          }}>
+            <div style={{ padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'var(--purple-deep)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontFamily: C, fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--purple-mid)' }}>
+                📨 {aiCodename} to the sleeper
+              </span>
+            </div>
+            <div style={{ padding: '18px' }}>
+              <div style={{ fontFamily: C, fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--purple)', marginBottom: '8px' }}>
+                To: {sleeperCodename}
+              </div>
+              <div style={{ fontSize: '16px', fontWeight: 300, fontStyle: 'italic', lineHeight: 1.65, color: 'rgba(255,255,255,0.82)' }}>
+                "{sleeperGrudge}"
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Play again */}
+        {showButton && (
           <button
             onClick={onComplete}
+            className="flip-in"
             style={{
-              padding:       '0.6rem 1.5rem',
-              background:    INK,
-              border:        `1px solid ${INK}`,
-              fontFamily:    'monospace',
-              fontSize:      '0.62rem',
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color:         '#FFFFFF',
-              cursor:        'pointer',
-              fontWeight:    600,
+              fontFamily: B, fontSize: '22px', letterSpacing: '3px',
+              padding: '16px 48px', background: 'var(--purple)', color: 'var(--ink)',
+              border: '2px solid var(--ink)', borderRadius: 'var(--radius)',
+              cursor: 'pointer', transition: 'all 0.15s',
             }}
+            onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'var(--purple-dark)'; b.style.color = 'white'; b.style.transform = 'rotate(-1deg) scale(1.03)' }}
+            onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'var(--purple)'; b.style.color = 'var(--ink)'; b.style.transform = '' }}
           >
-            Continue →
+            PLAY AGAIN →
           </button>
-        </div>
-      )}
+        )}
+
+      </div>
     </div>
   )
 }

@@ -2,128 +2,149 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── DESIGN TOKENS ───────────────────────────────────────── */
+/* ── FAUS DESIGN TOKENS ──────────────────────────────────── */
 :root {
-  --ink:    #0A0A0A;
-  --paper:  #FFFFFF;
-  --grey:   #999999;
-  --warn:   #FF6B35;
+  --beige:        #EDE8DF;
+  --beige-dark:   #E0D9CE;
+  --beige-darker: #D0C9BC;
+  --white:        #FAF8F4;
+  --ink:          #1A1A18;
+  --ink-soft:     #4A4840;
+  --ink-faint:    #9A958C;
+  --purple:       #B89EE8;
+  --purple-dark:  #8B6EC4;
+  --purple-deep:  #4A2D8A;
+  --purple-pale:  #EDE6FA;
+  --purple-mid:   #D4C0F4;
+  --sky:          #A8D8F0;
+  --blush:        #F0C8C8;
+  --border:       rgba(26,26,24,0.13);
+  --border-thick: rgba(26,26,24,0.28);
+  --radius:       3px;
+  --warn:         #CC4444;
+  /* legacy compat */
+  --paper:        #FAF8F4;
+  --grey:         #9A958C;
 }
 
-/* ── BASE ────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
 
 body {
-  background: var(--paper);
+  font-family: 'Barlow Condensed', var(--font-barlow, sans-serif);
+  background: var(--beige);
   color: var(--ink);
-  font-family: var(--font-mono), monospace;
+  min-height: 100vh;
+  font-size: 15px;
+  font-weight: 400;
 }
 
-::selection {
-  background: var(--ink);
-  color: var(--paper);
-}
+::selection { background: var(--ink); color: var(--beige); }
 
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #f4f4f4; }
-::-webkit-scrollbar-thumb { background: #cccccc; }
+::-webkit-scrollbar-track { background: var(--beige-dark); }
+::-webkit-scrollbar-thumb { background: var(--ink-faint); border-radius: 2px; }
 
-/* ── INK REVEAL ──────────────────────────────────────────── */
-.ink-reveal {
-  animation: inkReveal 0.5s ease forwards;
-}
-
+/* ── ANIMATIONS ──────────────────────────────────────────── */
+.ink-reveal { animation: inkReveal 0.5s ease forwards; }
 @keyframes inkReveal {
   from { clip-path: inset(0 100% 0 0); }
   to   { clip-path: inset(0 0% 0 0); }
 }
 
-/* ── FADE UP ─────────────────────────────────────────────── */
-.fade-up {
-  animation: fadeUp 0.4s ease forwards;
-}
-
+.fade-up { animation: fadeUp 0.4s ease forwards; }
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── TYPING CURSOR ───────────────────────────────────────── */
-.typing-cursor::after {
-  content: '▌';
-  color: var(--grey);
-  animation: blink 0.8s step-end infinite;
+.flip-in { animation: flipIn 0.45s cubic-bezier(0.34,1.4,0.64,1) forwards; }
+@keyframes flipIn {
+  from { opacity: 0; transform: scale(0.88) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+@keyframes slotIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes livepulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.7); }
+}
+
+@keyframes urgentShake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-2px); }
+  75%      { transform: translateX(2px); }
+}
+
+.typing-cursor::after {
+  content: '▌';
+  color: var(--ink-faint);
+  animation: blink 0.8s step-end infinite;
+}
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0; }
 }
 
-/* ── MESSAGE REVEAL ──────────────────────────────────────── */
-.message-ai {
-  border-left: 2px solid rgba(10,10,10,0.07);
-  transition: border-color 0.3s ease;
+/* ── WAITING DOTS ────────────────────────────────────────── */
+.waiting-dots { display: inline-flex; gap: 4px; margin-left: 4px; }
+.waiting-dots span {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--purple-mid); display: inline-block;
+  animation: dotBounce 1.4s infinite;
+}
+.waiting-dots span:nth-child(2) { animation-delay: 0.2s; }
+.waiting-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── LIVE PILL ───────────────────────────────────────────── */
+.live-pill {
+  font-family: 'Courier Prime', var(--font-courier, monospace);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  background: var(--purple); color: var(--ink);
+  padding: 4px 10px; border-radius: 2px;
+  border: 1.5px solid var(--ink);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.live-d {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--purple-deep);
+  animation: livepulse 1.5s infinite;
+  flex-shrink: 0;
 }
 
-.message-ai.revealed {
-  border-left-color: var(--ink);
-  background: rgba(10,10,10,0.02);
-}
-
-/* ── CHAT INPUT ──────────────────────────────────────────── */
+/* ── LEGACY COMPAT ───────────────────────────────────────── */
 .chat-input {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(10,10,10,0.15);
-  color: var(--ink);
-  font-family: var(--font-mono), monospace;
-  border-radius: 0;
-  transition: border-color 0.2s ease;
+  background: transparent; border: none;
+  border-bottom: 1px solid var(--border); color: var(--ink);
+  border-radius: 0; transition: border-color 0.2s;
 }
+.chat-input:focus { outline: none; border-bottom-color: var(--ink); }
 
-.chat-input:focus {
-  outline: none;
-  border-bottom-color: var(--ink);
-}
-
-/* ── VOTE CARD ───────────────────────────────────────────── */
 .vote-card {
-  border: none;
-  border-bottom: 1px solid rgba(10,10,10,0.1);
-  background: transparent;
+  border: none; border-bottom: 1px solid var(--border);
+  background: transparent; cursor: pointer;
+  padding: 0.75rem 0; width: 100%; text-align: left;
+  display: flex; align-items: center; justify-content: space-between;
   transition: border-bottom-color 0.1s;
-  cursor: pointer;
-  padding: 0.75rem 0;
-  width: 100%;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
+.vote-card:hover { border-bottom-color: var(--ink); }
+.vote-card.selected { border-bottom-color: var(--ink); }
 
-.vote-card:hover {
-  border-bottom-color: var(--ink);
-}
+.message-ai { border-left: 2px solid transparent; transition: border-color 0.3s, background 0.3s; }
+.message-ai.revealed { border-left-color: var(--purple-dark); background: var(--purple-pale); }
 
-.vote-card.selected {
-  border-bottom-color: var(--ink);
-}
-
-/* ── ROUND TIMER PULSE ───────────────────────────────────── */
-@keyframes timerPulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.45; }
-}
-
-/* ── CONSENT OVERLAY ─────────────────────────────────────── */
 .consent-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: fixed; inset: 0;
+  background: rgba(237,232,223,0.97);
+  backdrop-filter: blur(4px); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
 }

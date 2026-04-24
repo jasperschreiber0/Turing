@@ -179,8 +179,11 @@ create table grudge_log (
   target_player_id  uuid references players(id),
   message           text not null,
   ai_was_caught     boolean not null,
+  type              text default 'catcher',  -- 'catcher' | 'sleeper'
   created_at        timestamptz default now()
 );
+-- Migration for existing databases:
+-- ALTER TABLE grudge_log ADD COLUMN IF NOT EXISTS type text DEFAULT 'catcher';
 
 -- ── EXTRACTION QUEUE ──────────────────────────────────────────
 create table extraction_queue (

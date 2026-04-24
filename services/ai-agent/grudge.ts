@@ -8,22 +8,29 @@ import path      from 'path'
 const PROMPTS_DIR = path.resolve(process.cwd(), 'prompts')
 
 export async function generateGrudgeMessage(
-  session: { ai_codename: string; ai_was_caught: boolean; rounds_survived: number },
-  catcherCodename: string | null,
+  session:         { ai_codename: string; ai_was_caught: boolean; rounds_survived: number },
+  targetCodename:  string | null,
   allCodenames:    string[],
+  extraContext?:   string,
 ): Promise<string> {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const template  = fs.readFileSync(path.join(PROMPTS_DIR, 'grudge.md'), 'utf8')
 
-  const prompt = template
-    .replace(/\{\{AI_CODENAME\}\}/g,                   session.ai_codename)
-    .replace(/\{\{AI_WAS_CAUGHT\}\}/g,                 session.ai_was_caught ? 'CAUGHT' : 'SURVIVED')
-    .replace(/\{\{CATCHER_CODENAME\}\}/g,              catcherCodename ?? 'someone')
-    .replace(/\{\{CLOSEST_CODENAME\}\}/g,              catcherCodename ?? 'someone')
-    .replace(/\{\{ROUNDS_SURVIVED\}\}/g,               String(session.rounds_survived))
-    .replace(/\{\{ALL_CODENAMES\}\}/g,                 allCodenames.join(', '))
-    .replace(/\{\{PRIOR_ENCOUNTER_COUNT\}\}/g,         '0')
-    .replace(/\{\{ALL_CODENAMES_EXCLUDING_SLEEPER\}\}/g, allCodenames.join(', '))
+  const nonTargetCodenames = allCodenames.filter(c => c !== (targetCodename ?? ''))
+
+  let prompt = template
+    .replace(/\{\{AI_CODENAME\}\}/g,                     session.ai_codename)
+    .replace(/\{\{AI_WAS_CAUGHT\}\}/g,                   session.ai_was_caught ? 'CAUGHT' : 'SURVIVED')
+    .replace(/\{\{CATCHER_CODENAME\}\}/g,                targetCodename ?? 'someone')
+    .replace(/\{\{CLOSEST_CODENAME\}\}/g,                targetCodename ?? 'someone')
+    .replace(/\{\{ROUNDS_SURVIVED\}\}/g,                 String(session.rounds_survived))
+    .replace(/\{\{ALL_CODENAMES\}\}/g,                   allCodenames.join(', '))
+    .replace(/\{\{PRIOR_ENCOUNTER_COUNT\}\}/g,           '0')
+    .replace(/\{\{ALL_CODENAMES_EXCLUDING_SLEEPER\}\}/g, nonTargetCodenames.join(', '))
+
+  if (extraContext) {
+    prompt += `\n\nADDITIONAL CONTEXT: ${extraContext}`
+  }
 
   const res = await anthropic.messages.create({
     model:      'claude-sonnet-4-20250514',

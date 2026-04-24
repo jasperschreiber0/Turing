@@ -618,21 +618,43 @@ async function _handleMessage(roomId: string, trigger: any) {
 // ── Generate grudge message (called post-game) ────────────────
 export { generateGrudgeMessage } from './grudge'
 
-// ── Start: subscribe to Supabase Realtime ────────────────────
-function start() {
-  console.log('[turing-agent] Starting...')
-  console.log(`[turing-agent] Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`)
+// ── Polling fallback ──────────────────────────────────────────
+// Primary message detection when Realtime is unavailable.
+let lastPollAt = new Date().toISOString()
+
+async function pollForMessages() {
+  const since = lastPollAt
+  lastPollAt = new Date().toISOString()
+
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('is_ai', false)
+    .gt('sent_at', since)
+    .order('sent_at', { ascending: true })
+
+  for (const msg of (messages ?? [])) {
+    try {
+      await handleMessage(msg.room_id, msg)
+    } catch (err) {
+      console.error('[agent] Poll handler error:', err)
+    }
+  }
+}
+
+// ── Subscribe to Supabase Realtime (bonus — polling is primary) ──
+function subscribeRealtime() {
+  let reconnectScheduled = false
 
   supabase
-    .channel('ai-agent')
+    .channel(`ai-agent-${Date.now()}`)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages' },
       async (payload) => {
         const msg = payload.new as any
-        if (msg.is_ai) return  // ignore own messages
-
-        console.log(`[agent] Message from ${msg.codename}: "${msg.content}"`)
+        if (msg.is_ai) return
+        console.log(`[agent] Realtime: ${msg.codename}: "${msg.content}"`)
         try {
           await handleMessage(msg.room_id, msg)
         } catch (err) {
@@ -642,7 +664,23 @@ function start() {
     )
     .subscribe((status) => {
       console.log(`[turing-agent] Realtime status: ${status}`)
+      if (status === 'TIMED_OUT' && !reconnectScheduled) {
+        reconnectScheduled = true
+        console.log('[turing-agent] Realtime down — relying on poll. Retrying in 60s...')
+        setTimeout(subscribeRealtime, 60000)
+      }
     })
+}
+
+function start() {
+  console.log('[turing-agent] Starting...')
+  console.log(`[turing-agent] Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`)
+
+  // Polling: runs every 4s — handles messages even when Realtime is down
+  setInterval(() => pollForMessages().catch(console.error), 4000)
+
+  // Realtime: bonus for instant response when available
+  subscribeRealtime()
 
   console.log('[turing-agent] Listening for human messages...')
 }
