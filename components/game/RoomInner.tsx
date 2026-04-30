@@ -396,7 +396,7 @@ export default function RoomInner() {
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{ fontFamily: B, fontSize: '88px', letterSpacing: '10px', color: 'var(--ink)', lineHeight: 1, marginBottom: '4px', textShadow: '3px 3px 0 var(--purple-mid)' }}>FAUS</div>
           <div style={{ fontFamily: C, fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
-            Waiting for players
+            Today's topic
             <span className="waiting-dots"><span/><span/><span/></span>
           </div>
         </div>
@@ -405,7 +405,7 @@ export default function RoomInner() {
         <div style={{ background: 'var(--ink)', borderRadius: 'var(--radius)', padding: '32px', textAlign: 'center', marginBottom: '20px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)', fontFamily: C, fontSize: '9px', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>ROOM CODE</div>
           <div style={{ fontFamily: B, fontSize: '72px', letterSpacing: '14px', color: 'var(--purple)', lineHeight: 1, marginTop: '12px', textShadow: '0 0 40px rgba(184,158,232,0.4)' }}>{code}</div>
-          <div style={{ fontFamily: C, fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginTop: '8px' }}>Share with friends to join</div>
+          <div style={{ fontFamily: C, fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginTop: '8px' }}>{room?.topic ?? "freeplay"}</div>
         </div>
 
         {/* Player slots */}
