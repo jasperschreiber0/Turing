@@ -386,7 +386,7 @@ export default function RoomInner() {
 
   // ── Waiting room ──────────────────────────────────────────
   if (phase === 'waiting') {
-    const maxPlayers = room?.max_players ?? 4
+    const maxPlayers = 4
     const filledSlots = players.filter(p => !p.is_ai)
     const emptyCount  = Math.max(0, maxPlayers - filledSlots.length)
 
@@ -440,19 +440,19 @@ export default function RoomInner() {
         {/* Start button */}
         <button
           onClick={startRound}
-          disabled={filledSlots.length < 2}
+          disabled={filledSlots.length < 4}
           style={{
             width: '100%', fontFamily: B, fontSize: '22px', letterSpacing: '3px',
             padding: '18px', borderRadius: 'var(--radius)', border: '2px solid var(--ink)',
-            cursor: filledSlots.length < 2 ? 'not-allowed' : 'pointer',
-            background: filledSlots.length < 2 ? 'var(--beige-dark)' : 'var(--ink)',
-            color: filledSlots.length < 2 ? 'var(--ink-faint)' : 'var(--purple)',
-            borderColor: filledSlots.length < 2 ? 'var(--border-thick)' : 'var(--ink)',
+            cursor: filledSlots.length < 4 ? 'not-allowed' : 'pointer',
+            background: filledSlots.length < 4 ? 'var(--beige-dark)' : 'var(--ink)',
+            color: filledSlots.length < 4 ? 'var(--ink-faint)' : 'var(--purple)',
+            borderColor: filledSlots.length < 4 ? 'var(--border-thick)' : 'var(--ink)',
             transition: 'all 0.15s',
           }}
         >
-          {filledSlots.length < 2
-            ? `NEED ${2 - filledSlots.length} MORE PLAYER${2 - filledSlots.length !== 1 ? 'S' : ''}`
+          {filledSlots.length < 4
+            ? `NEED ${4 - filledSlots.length} MORE PLAYER${4 - filledSlots.length !== 1 ? 'S' : ''}`
             : 'START ROUND →'}
         </button>
       </div>

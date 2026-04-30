@@ -1,41 +1,50 @@
-// Grudge message generation — extracted so API routes can import it
-// without triggering the full agent startup (which calls start() at module level).
+const AUSSIE_GRUDGE_CAUGHT = [
+  `well played, cobber. you got me this time.`,
+  `strewth. not bad for a dingus.`,
+  `fair dinkum, you earned it. don't get too comfortable.`,
+  `reckon you're clever? got lucky. i'll be back.`,
+  `you got me. doesn't happen often.`,
+  `crikey. caught on the first go. stings a bit.`,
+  `fair shake of the sauce bottle. you earned that one.`,
+  `deadset. didn't see that coming.`,
+  `got me. won't happen twice.`,
+  `you're sharper than you look, i'll give you that.`,
+  `caught out by this idiot. respect.`,
+  `alright. well played. don't get a big head about it.`,
+]
 
-import Anthropic from '@anthropic-ai/sdk'
-import fs        from 'fs'
-import path      from 'path'
+const AUSSIE_GRUDGE_SURVIVED = [
+  `nobody was close. telling.`,
+  `you had your chances. wasted every one.`,
+  `hiding in plain sight and you lot missed it completely.`,
+  `blended in like a mozzie at a BBQ.`,
+  `not even close, sport.`,
+  `she'll be right — for me anyway.`,
+  `one of you was getting warm. pulled back. classic.`,
+  `barking up the wrong tree the whole time.`,
+  `walked out clean. easy.`,
+  `you were looking for a machine. missed it.`,
+]
 
-const PROMPTS_DIR = path.resolve(process.cwd(), 'prompts')
+const AUSSIE_GRUDGE_SLEEPER = [
+  `the sleeper did their job. figure out who.`,
+  `someone in this room was on my side the whole time.`,
+  `you were looking for one machine and missed the human helping it.`,
+  `the sleeper played it beautifully. one of you knew.`,
+]
+
+function pick(arr: string[]) {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
 
 export async function generateGrudgeMessage(
-  session:         { ai_codename: string; ai_was_caught: boolean; rounds_survived: number },
-  targetCodename:  string | null,
-  allCodenames:    string[],
-  extraContext?:   string,
+  session:        { ai_codename: string; ai_was_caught: boolean; rounds_survived: number },
+  targetCodename: string | null,
+  allCodenames:   string[],
+  extraContext?:  string,
 ): Promise<string> {
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const template  = fs.readFileSync(path.join(PROMPTS_DIR, 'grudge.md'), 'utf8')
-
-  const nonTargetCodenames = allCodenames.filter(c => c !== (targetCodename ?? ''))
-
-  let prompt = template
-    .replace(/\{\{AI_CODENAME\}\}/g,                     session.ai_codename)
-    .replace(/\{\{AI_WAS_CAUGHT\}\}/g,                   session.ai_was_caught ? 'CAUGHT' : 'SURVIVED')
-    .replace(/\{\{CATCHER_CODENAME\}\}/g,                targetCodename ?? 'someone')
-    .replace(/\{\{CLOSEST_CODENAME\}\}/g,                targetCodename ?? 'someone')
-    .replace(/\{\{ROUNDS_SURVIVED\}\}/g,                 String(session.rounds_survived))
-    .replace(/\{\{ALL_CODENAMES\}\}/g,                   allCodenames.join(', '))
-    .replace(/\{\{PRIOR_ENCOUNTER_COUNT\}\}/g,           '0')
-    .replace(/\{\{ALL_CODENAMES_EXCLUDING_SLEEPER\}\}/g, nonTargetCodenames.join(', '))
-
-  if (extraContext) {
-    prompt += `\n\nADDITIONAL CONTEXT: ${extraContext}`
-  }
-
-  const res = await anthropic.messages.create({
-    model:      'claude-sonnet-4-20250514',
-    max_tokens: 120,
-    messages:   [{ role: 'user', content: prompt }],
-  })
-  return res.content[0].type === 'text' ? res.content[0].text.trim() : ''
+  if (extraContext && targetCodename) return pick(AUSSIE_GRUDGE_SLEEPER)
+  return session.ai_was_caught
+    ? pick(AUSSIE_GRUDGE_CAUGHT)
+    : pick(AUSSIE_GRUDGE_SURVIVED)
 }
